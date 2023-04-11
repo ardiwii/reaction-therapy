@@ -1,0 +1,55 @@
+.analysis-section{
+    display: flex;
+}
+
+.video-section{
+    flex: 70%;
+    height: 70%;
+    align-items: center;
+}
+
+.input-section{
+    flex: 30%;
+    width: 100%;
+    height: 70%;
+    align-items: center;
+}
+
+.video-box{
+    position: relative;
+    width: 600px;
+    height: 400px;
+}
+
+.video-control-section{
+    position: absolute;
+    bottom:0;
+    width:100%;
+    height:30px;
+}
+
+.video-progress{
+    background-color: gray;
+    margin-left: 10px;
+    margin-right: 10px;
+    height: 10px;
+    cursor: pointer;
+}
+
+.video-progress-fill{
+    background-color: lightskyblue;
+    height: 10px;
+}
+
+.marker-area{
+    position:absolute;
+    bottom:0;
+    width: 577px;
+    margin-left: 10px;
+    height: 20px;
+    pointer-events: none;
+}
+
+.marker{
+    pointer-events: none;
+}
