@@ -5,9 +5,13 @@ import * as faceLandmarksDetection from "@tensorflow-models/face-landmarks-detec
 import '@mediapipe/face_mesh';
 import Webcam from 'react-webcam';
 import YouTube from 'react-youtube';
+import { ref, uploadBytes, uploadString } from "firebase/storage";
+import storage from "../firebase"
 
 function Watch() {
 
+  const [recordingId, setRecordingId] = useState("");
+  const [userid, setUserid] = useState("");
   const [lastPositions, setLastPositions] = useState([]);
   const [detector, setDetector] = useState(null);
   const [outputData, setOutputData] = useState("");
@@ -36,67 +40,36 @@ function Watch() {
     });
   }
 
-  function saveFile(recordedChunks){
-    const blob = new Blob(recordedChunks, {
-       type: 'video/webm'
-     });
-     let filename = window.prompt('Enter file name'),
-         downloadLink = document.createElement('a');
-     downloadLink.href = URL.createObjectURL(blob);
-     downloadLink.download = `${filename}.webm`;
- 
-     document.body.appendChild(downloadLink);
-     downloadLink.click();
-     URL.revokeObjectURL(blob); // clear from memory
-     document.body.removeChild(downloadLink);
- }
-
   const startRecording = useCallback(async() => {
+
+    setRecordingId(new Date(Date.now()).toISOString());
+
     let stream = await recordScreen();
     // the stream data is stored in this array
-    let recordedChunks = []; 
+    setRecordedChunks([]); 
   
     const mediaRecorder = new MediaRecorder(stream);
   
     mediaRecorder.ondataavailable = function (e) {
       if (e.data.size > 0) {
-        recordedChunks.push(e.data);
+        let tempChunk = recordedChunks;
+        tempChunk.push(e.data);
+        setRecordedChunks(tempChunk);
       }  
-    };
-    mediaRecorder.onstop = function () {
-       saveFile(recordedChunks);
-       recordedChunks = [];
     };
     mediaRecorder.start(200); // For every 200ms the stream data will be stored in a separate chunk.
     mediaRecorderRef.current = mediaRecorder;
 
     console.log("recording started");
     setRecordingState(1);
-  },[mediaRecorderRef, setRecordingState])
+  },[mediaRecorderRef, setRecordingState, recordedChunks])
 
   const stopRecording = useCallback(() => {
     console.log("recording stopped");
-    mediaRecorderRef.current.stop();
     setOutputData(outputData => time + ", " + outputData);
+    mediaRecorderRef.current.stop();
     setRecordingState(2);
   }, [setRecordingState, mediaRecorderRef, time])
-
-  const handleDownloadVideo = useCallback(() => {
-    if (recordedChunks.length) {
-      const blob = new Blob(recordedChunks, {
-        type: "video/webm",
-      });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      document.body.appendChild(a);
-      a.style = "display: none";
-      a.href = url;
-      a.download = "react-webcam-stream-capture.webm";
-      a.click();
-      window.URL.revokeObjectURL(url);
-      setRecordedChunks([]);
-    }
-  }, [recordedChunks]);
 
   const getDistance = (x1,y1,x2,y2) => {
     const a = x1 - x2;
@@ -183,7 +156,7 @@ function Watch() {
     const element = document.createElement('a');
     const file = new Blob([outputData], {type: 'text/plain'});
     element.href = URL.createObjectURL(file);
-    element.download = 'reaction-output-data.txt';
+    element.download = `${userid}-output-data.txt`;
     document.body.appendChild(element);
     element.click();
   };
@@ -209,6 +182,41 @@ function Watch() {
     }
     return () => clearInterval(interval);
   }, [recordingState]);
+
+  useEffect(() => {
+    setUserid(localStorage.getItem("userid"));
+  }, [userid]);
+
+  useEffect(() => {
+    if(recordingState === 2){
+      
+      const textStoreRef = ref(storage, `${userid}/${recordingId} - data`);
+      uploadString(textStoreRef, outputData, "raw", { contentType: "text/plain", }).then((snapshot) => {
+        console.log('Uploaded data string!');
+      }, [outputData]);
+
+      const videoBlob = new Blob(recordedChunks, {
+        type: 'video/webm'
+      });
+  
+      // upload to firebase
+      // const videoStoreRef = ref(storage, `${userid}/${recordingId} - video`);
+      // uploadBytes(videoStoreRef, videoBlob).then((snapshot) => {
+      //   console.log('Uploaded recording file!');
+      // });
+  
+      let downloadLink = document.createElement('a');
+      downloadLink.href = URL.createObjectURL(videoBlob);
+      downloadLink.download = `${userid}-${recordingId}.webm`;
+  
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      URL.revokeObjectURL(videoBlob); // clear from memory
+      document.body.removeChild(downloadLink);
+
+      // setRecordedChunks([]);
+    }
+  }, [recordingState, outputData, recordingId, userid, recordedChunks]);
 
   return (
     <div className="App">
@@ -247,8 +255,8 @@ function Watch() {
           <button disabled={recordingState!==0} onClick={startRecording}>Start Recording</button>
           <button disabled={recordingState!==1} onClick={stopRecording}>Stop Recording</button>
           <button disabled={recordingState!==2} onClick={handleDownloadText}>Download Data</button>
-          <button disabled={recordingState!==2} onClick={handleDownloadVideo}>Download Video</button>
         </div>
+        <div className='control-buttons'>logged in as: {userid}</div>
         <div className='stat-section'>
           Right Lip: {movements[0]}<br/>
           Left Lip: {movements[1]}<br/>

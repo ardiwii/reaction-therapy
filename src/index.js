@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import Watch from './pages/watch'
 import Analyze from './pages/analyze'
+import Login from './pages/login';
 import reportWebVitals from './reportWebVitals';
 import { BrowserRouter } from 'react-router-dom';
 import { Routes, Route } from 'react-router-dom';
@@ -12,7 +13,8 @@ root.render(
   
   <BrowserRouter>
     <Routes>
-      <Route index element={<Watch />} />
+      <Route index element={<Login />} />
+      <Route path='login' element={<Login />} />
       <Route path='analyze' element={<Analyze />} />
       <Route path='watch' element={<Watch />} />
     </Routes>
