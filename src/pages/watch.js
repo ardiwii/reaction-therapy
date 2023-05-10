@@ -7,6 +7,7 @@ import Webcam from 'react-webcam';
 import YouTube from 'react-youtube';
 import { ref, uploadBytes, uploadString } from "firebase/storage";
 import storage from "../firebase"
+import userEvent from '@testing-library/user-event';
 
 function Watch() {
 
@@ -22,6 +23,8 @@ function Watch() {
   const webcamRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const canvasRef = useRef(null);
+  const feedbackCanvasRef = useRef(null);
+  const thumbsUpRef = useRef(null);
 
   const runFacemesh = async () => {
     const model = faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh;
@@ -96,7 +99,7 @@ function Watch() {
             const y = keypoints[targetPoints[i]].y;
             let movement = 0;
             ctx.beginPath();
-            ctx.arc(x, y, 1, 0, 3*Math.PI);
+            ctx.arc(150, 150, 1, 0, 5*Math.PI);
             ctx.fillStyle = "aqua";
             ctx.fill();
             
@@ -114,6 +117,10 @@ function Watch() {
             }
             if(i>3 && movement > 3.0 && movement <10.0 && !isBigMovement){ //movement more than 10 points is too big and most likely a full head movement so we ignore it
               console.log("big movement detected");
+              thumbsUpRef.current.style.display = "block";
+              setTimeout(() => {
+                thumbsUpRef.current.style.display = "none";
+              }, 1000);
               setOutputData(outputData => outputData + time + ", ");
               isBigMovement = true;
             }
@@ -163,7 +170,21 @@ function Watch() {
 
   useEffect(()=>{
     runFacemesh();
-  }, [webcamRef]);
+  }, [webcamRef, feedbackCanvasRef]);
+
+  useEffect(()=>{
+    const ctx = feedbackCanvasRef.current.getContext("2d");
+    ctx.beginPath();
+    ctx.arc(180, 240, 8, 0, 2*Math.PI);
+    const moveValue0 = movements[0] !== undefined ? Math.max(255 - (movements[0] / 8.0 * 255), 0) : 255;
+    ctx.fillStyle = `rgb(255,${moveValue0},${moveValue0})`;
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(120, 240, 8, 0, 2*Math.PI);
+    const moveValue1 = movements[1] !== undefined ? Math.max(255 - (movements[1] / 8.0 * 255), 0) : 255;
+    ctx.fillStyle = `rgb(255,${moveValue1},${moveValue1})`;
+    ctx.fill();
+  }, [feedbackCanvasRef, movements])
 
   useEffect(() => {
     if (recordingState === 1) {
@@ -222,6 +243,7 @@ function Watch() {
     <div className="App">
       <div className="container">
         <div className='video-section'>
+          <div>
           <div className='youtube-player'>
             <YouTube 
               videoId="2g811Eo7K8U"
@@ -231,39 +253,59 @@ function Watch() {
               }}
             />
             {recordingState === 0 ? <div className='youtube-blocker'><div className='youtube-blocker-text'>please start the recording first</div></div> : <></>}
+            </div>
+            <div className='control-buttons'>
+              <button disabled={recordingState!==0} onClick={startRecording}>Start Recording</button>
+              <button disabled={recordingState!==1} onClick={stopRecording}>Stop Recording</button>
+              <button disabled={recordingState!==2} onClick={handleDownloadText}>Download Data</button>
+            </div>
+            <div className='control-buttons'>logged in as: {userid}</div>
           </div>
           <div className='reaction-section'>
-            <Webcam ref={webcamRef} style={
-              {
-                position:"absolute",
-                zIndex:9,
-                width:480,
-                height:300
-              }
-            } />
-            <canvas ref={canvasRef} style={
-              {
-                position:"absolute",
-                zIndex:9,
-                width:480,
-                height:300
-              }
-            } />
+            <div className='reaction-video'>
+              <Webcam ref={webcamRef} style={
+                {
+                  position:"absolute",
+                  zIndex:9,
+                  width:480,
+                  height:300
+                }
+              } />
+              <canvas ref={canvasRef} style={
+                {
+                  position:"absolute",
+                  zIndex:9,
+                  width:480,
+                  height:300
+                }
+              } />
+              <div ref={thumbsUpRef} style={{
+                position:"absolute", zIndex:10, display:"none"}
+              }>
+                <img src='ThumbsUp.gif' alt='thumbs up animated gif' width={50} height={50}/>
+              </div>
+            </div>
+            <div className='stat-section'>
+              <img src="facewire.png" alt="wireframe of a face" style={
+                {
+                  position:"absolute",
+                  width:"300px",
+                  height:"300px"
+                }
+              } />
+              <canvas ref={feedbackCanvasRef} width={300} height={300} style={
+                {
+                  position:"absolute"
+                }
+              } />
+              {/* Right Lip: {movements[0]}<br/>
+              Left Lip: {movements[1]}<br/>
+              Left Eyebrow: {movements[2]}<br/>
+              Left Eye: {movements[3]}<br/>
+              Right Eyebrow: {movements[4]}<br/>
+              Right Eye: {movements[5]}<br/> */}
+            </div>
           </div>
-        </div>
-        <div className='control-buttons'>
-          <button disabled={recordingState!==0} onClick={startRecording}>Start Recording</button>
-          <button disabled={recordingState!==1} onClick={stopRecording}>Stop Recording</button>
-          <button disabled={recordingState!==2} onClick={handleDownloadText}>Download Data</button>
-        </div>
-        <div className='control-buttons'>logged in as: {userid}</div>
-        <div className='stat-section'>
-          Right Lip: {movements[0]}<br/>
-          Left Lip: {movements[1]}<br/>
-          Left Eyebrow: {movements[2]}<br/>
-          Left Eye: {movements[3]}<br/>
-          Right Eyebrow: {movements[4]}<br/>
-          Right Eye: {movements[5]}<br/>
         </div>
       </div>
     </div>

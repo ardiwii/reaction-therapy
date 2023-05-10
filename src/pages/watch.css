@@ -73,25 +73,34 @@
   position:relative;
 }
 
-.reaction-section{
-  flex:40%;
-  height: 60%;
-  margin-top: auto;
-  margin-bottom: auto;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-}
-
 .control-buttons{
   display: flex;
   justify-content: center;
 }
 
+.reaction-section{
+  height: 100vh;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+  top: 25vh;
+}
+
+.reaction-video{
+  position: relative;
+  display: contents;
+  height: 100vh;
+}
+
 .stat-section{
-  float:right;
-  width:30vw;
-  height: 100%;
+  top: 45vh;
+  width: 250px;
+  height: 300px;
+  position: relative;
+  justify-content: center;
+  display: flex;
+  background-color: black;
 }
 
 
